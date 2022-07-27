@@ -1,0 +1,287 @@
+/*SESION 3 CONCESIONARIO*/
+
+--CREAMOS LAS TABLAS
+
+--MANUFACTURER
+CREATE TABLE public.manufacturer (
+    id SERIAL,
+    name VARCHAR(50) NOT NULL,
+    num_employee INT,
+    
+    CONSTRAINT pk_manufacturer PRIMARY KEY(id) --PRIMARY KEY ID
+    
+);
+
+SELECT * FROM manufacturer;
+
+INSERT INTO manufacturer (name, num_employee)
+    VALUES ('Ford', 2000);
+    
+INSERT INTO manufacturer (name, num_employee)
+    VALUES ('Toyota', 5000);
+    
+INSERT INTO manufacturer (name, num_employee)
+    VALUES ('Seat', 4000);
+    
+--MODEL
+CREATE TABLE model (
+    id SERIAL,
+    name VARCHAR(50) NOT NULL,
+    manufacturer_id INT,
+    
+    CONSTRAINT pk_model PRIMARY KEY(id),
+    /*ASOCIO LA COLUMNA ID DE LA TABLA MANUFACTURER CON LA COLUMNA MANUFACTURER_ID DE LA TABLA MODEL*/
+    CONSTRAINT fk_model_manufacturer FOREIGN KEY(manufacturer_id) REFERENCES manufacturer (id)
+    
+);
+
+SELECT * FROM model;
+
+INSERT INTO model (name, manufacturer_id)
+    VALUES ('Mondeo', 1);
+    
+INSERT INTO model (name, manufacturer_id)
+    VALUES ('Fiesta', 1);
+    
+INSERT INTO model (name, manufacturer_id)
+    VALUES ('Auris', 2);
+    
+INSERT INTO model (name, manufacturer_id)
+    VALUES ('CLK', 3);
+    
+INSERT INTO model (name, manufacturer_id)
+    VALUES ('Prius', 2);
+
+--VERSION
+CREATE TABLE version (
+    id SERIAL,
+    name varchar(50) NOT NULL,
+    engine VARCHAR(50),
+    price NUMERIC,
+    ccvv NUMERIC(2,1),
+    id_model INT,
+    
+    CONSTRAINT pk_version PRIMARY KEY (id),
+    /* EL COMANDO CASCADA HACE QUE AL BORRAR UN REGISTRO LOS DATOS ASOCIADOS CON LA FOREING KEY TAMBIEN
+    SE BORREN.
+    CON EL COMANDO set null HAREMOS QUE LOS DATOS ASOCIADOS SE PONGAN COMO NULL*/
+    CONSTRAINT fk_version_model FOREIGN KEY (id_model) REFERENCES model(id) ON UPDATE set null ON DELETE set null
+);
+
+SELECT * FROM version;
+
+INSERT INTO version (name, engine, price, ccvv, id_model)
+    VALUES ('Basic', 'Disel 4C', 30000, 1.9, 1);
+INSERT INTO version (name, engine, price, ccvv, id_model)
+    VALUES ('Medium', 'Disel 5C', 40000, 2.2, 1);
+INSERT INTO version (name, engine, price, ccvv, id_model)
+    VALUES ('Advanced', 'Disel 6C', 50000, 3.3, 1);
+    
+INSERT INTO version (name, engine, price, ccvv, id_model)
+    VALUES ('Basic', 'Disel 4C', 30000, 1.9, 3);
+INSERT INTO version (name, engine, price, ccvv, id_model)
+    VALUES ('Medium', 'Hybryd', 50000, 1.5, 3);
+INSERT INTO version (name, engine, price, ccvv, id_model)
+    VALUES ('Advanced', 'Electric', 70000, NULL, 3);
+    
+INSERT INTO version (name, engine, price, ccvv, id_model)
+    VALUES ('Basic', 'Gasoil 8C', 30000, 1.9, 2);
+INSERT INTO version (name, engine, price, ccvv, id_model)
+    VALUES ('Sport', 'Gasoil 10C', 50000, 2.2, 2);
+INSERT INTO version (name, engine, price, ccvv, id_model)
+    VALUES ('Grand Tourism', 'Gasoil 12C', 90000, 5.5, 2);
+
+--EXTRA
+CREATE TABLE extra(
+    id SERIAL,
+    name VARCHAR(50) NOT NULL,
+    description VARCHAR(300) NOT NULL,
+    
+    CONSTRAINT pk_extra PRIMARY KEY(id)
+    
+);
+SELECT * FROM extra;
+
+INSERT INTO extra (name, description)
+    VALUES ('Tapiceria Piel', 'Tapiceria de piel de escroto de mono.');    
+INSERT INTO extra (name, description)
+    VALUES ('Techo solar', 'Techo solar para ponerte la calva roja.');    
+INSERT INTO extra (name, description)
+    VALUES ('Asiento calefactado', 'Calienta los asientos... y tu ojete.');
+INSERT INTO extra (name, description)
+    VALUES ('Sonido envolvente', 'Sistema de sonido envolvente 10.5.');
+INSERT INTO extra (name, description)
+    VALUES ('Modo disco', 'Sistema de luces interiores LED de ultima generacion.');
+
+--CREO UNA TABLA QUE ME RELACIONE LOS EXTRAS CON LAS VERSIONES (RELACION MANY TO MANY)
+CREATE TABLE extra_version (
+    extra_id INT,
+    version_id INT,
+    price_extra NUMERIC NOT NULL CHECK (price_extra>=0),
+    
+    /*HACEMOS UN PRIMARY KEY COMPUESTO ENTRE extra_id Y version_id PARA QUE NO SE DUPLIQUEN REGISTROS IGUALES*/
+    CONSTRAINT pk_extra_version PRIMARY KEY(extra_id,version_id),
+    /*HACEMOS DOS FOREIGN KEYS QUE ME RELACIONEN LOS ID CON LAS TABLAS CORRESPONDIENTES*/
+    CONSTRAINT fk_extra FOREIGN KEY(extra_id) REFERENCES extra(id) ON UPDATE cascade ON DELETE cascade,
+    CONSTRAINT fk_version FOREIGN KEY(version_id) REFERENCES version(id)
+);
+    
+SELECT * FROM extra_version;
+
+--Ford Mondeo basic Tapiceria
+INSERT INTO extra_version 
+    VALUES(1, 1, 500);
+--Ford Mondeo basic techo Solar
+INSERT INTO extra_version 
+    VALUES(2, 1, 500);
+--Ford Mondeo basic Asiento
+INSERT INTO extra_version 
+    VALUES(3, 1, 1500);
+    
+--Ford Mondeo advance Tapiceria
+INSERT INTO extra_version 
+    VALUES(1, 3, 800);
+--Ford Mondeo advance techo Solar
+INSERT INTO extra_version 
+    VALUES(2, 3, 1000);
+--Ford Mondeo advance Asiento
+INSERT INTO extra_version 
+    VALUES(3, 3, 2000);
+--Ford Mondeo advance Sonido
+INSERT INTO extra_version 
+    VALUES(4, 3, 1800);
+
+--Ford Mondeo medium Tapiceria
+INSERT INTO extra_version 
+    VALUES(1, 2, 600);
+--Ford Mondeo medium techo Solar
+INSERT INTO extra_version 
+    VALUES(2, 2, 700);
+--Ford Mondeo medium Asiento
+INSERT INTO extra_version 
+    VALUES(3, 2, 1700);
+--Ford Mondeo medium Sonido
+INSERT INTO extra_version 
+    VALUES(4, 2, 1500);
+    
+--Ford fiesta gt Tapiceria
+INSERT INTO extra_version 
+    VALUES(1, 9, 800);
+--Ford fiesta gt techo Solar
+INSERT INTO extra_version 
+    VALUES(2, 9, 1500);
+--Ford fiesta gt Asiento
+INSERT INTO extra_version 
+    VALUES(3, 9, 1900);
+--Ford fiesta gt Sonido
+INSERT INTO extra_version 
+    VALUES(4, 9, 2200);
+--Ford fiesta gt luces
+INSERT INTO extra_version 
+    VALUES(5, 9, 2500);
+
+--VENDEDOR
+CREATE TABLE employee(
+    id SERIAL,
+    name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50),
+    NIF VARCHAR(9) NOT NULL UNIQUE,
+    phone VARCHAR(9),
+    
+    CONSTRAINT pk_id_employee PRIMARY KEY(id)
+);
+
+SELECT * FROM employee;
+
+INSERT INTO employee (name, nif) VALUES ('Manolo', '22444777W');
+INSERT INTO employee (name, nif) VALUES ('Maria', '88777568A');
+INSERT INTO employee (name, nif) VALUES ('Eufrasio', '12345678P');
+
+
+--CUSTOMER
+CREATE TABLE customer(
+    id SERIAL,
+    name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50),
+    nif VARCHAR(9) NOT NULL UNIQUE,
+    email VARCHAR(50) NOT NULL UNIQUE,
+    address VARCHAR(200),
+    
+    CONSTRAINT pk_id_cust PRIMARY KEY(id)
+);
+
+SELECT * FROM customer;
+
+INSERT INTO customer (name, nif, email) VALUES ('Jose Luis', '22444789W', 'joseluis@correo.com');
+INSERT INTO customer (name, nif, email) VALUES ('Antonio Manuel', '55444789K', 'antonio@correo.com');
+INSERT INTO customer (name, nif, email) VALUES ('Pepita', '22664789L', 'pepitalaguapa@correo.com');
+INSERT INTO customer (name, nif, email) VALUES ('Angustia', '88951357S', 'angustiada@correo.com');
+INSERT INTO customer (name, nif, email) VALUES ('Rocio', '26544789D', 'rosiito@correo.com');
+INSERT INTO customer (name, nif, email) VALUES ('Antonia Maria', '95642857D', 'mariantonia@correo.com');
+
+
+--VEHICULO
+CREATE TABLE vehicle(
+    id SERIAL,
+    license_num VARCHAR(7) NOT NULL UNIQUE,
+    creation_date DATE,
+    net_price NUMERIC,
+    gross_price NUMERIC,
+    type VARCHAR(30),
+    --estos campos seran las foreign keys
+    id_manufacturer INT,
+    id_model INT,
+    id_version INT,
+    id_extra INT,
+    
+    CONSTRAINT pk_vehicle PRIMARY KEY(id),
+    CONSTRAINT fk_vehicle_manufacturer FOREIGN KEY (id_manufacturer) REFERENCES manufacturer(id),
+    CONSTRAINT fk_vehicle_model FOREIGN KEY (id_model) REFERENCES model(id),
+    CONSTRAINT fk_vehicle_extra_version FOREIGN KEY(id_extra, id_version) REFERENCES extra_version(extra_id,version_id)
+    
+);
+
+SELECT * FROM vehicle;
+
+INSERT INTO VEHICLE (license_num, gross_price, id_manufacturer, id_model, id_version, id_extra)
+    VALUES ('1234AAA', 45000, 1, 1, 1, 1);
+INSERT INTO VEHICLE (license_num, gross_price, id_manufacturer, id_model, id_version, id_extra)
+    VALUES ('1235AAA', 55000, 2, 1, 1, 1);
+INSERT INTO VEHICLE (license_num, gross_price, id_manufacturer, id_model, id_version, id_extra)
+    VALUES ('1434ABA', 75000, 1, 1, 2, 2);
+INSERT INTO VEHICLE (license_num, gross_price, id_manufacturer, id_model, id_version, id_extra)
+    VALUES ('1434CCA', 100000, 1, 2, 9, 5);
+
+--VENTAS
+CREATE TABLE sale(
+    id SERIAL,
+    sale_date DATE,
+    description VARCHAR(300),
+    
+    id_vehicle INT,
+    id_employee INT,
+    id_customer INT,
+    
+    CONSTRAINT pk_sale PRIMARY KEY(id),
+    
+    CONSTRAINT fk_sale_vehicle FOREIGN KEY (id_vehicle) REFERENCES vehicle(id),
+    CONSTRAINT fk_sale_employee FOREIGN KEY (id_employee) REFERENCES employee(id),
+    CONSTRAINT fk_sale_customer FOREIGN KEY (id_customer) REFERENCES customer(id)
+
+);
+
+SELECT * FROM sale;
+
+INSERT INTO sale(sale_date, description, id_vehicle, id_employee, id_customer)
+    VALUES('2022-01-01', 'DIRECT', 1, 1, 1);
+INSERT INTO sale(sale_date, description, id_vehicle, id_employee, id_customer)
+    VALUES('2022-01-11', 'DIRECT', 2, 1, 2);
+INSERT INTO sale(sale_date, description, id_vehicle, id_employee, id_customer)
+    VALUES('2022-01-03', 'PHONE', 3, 2, 3);
+
+
+
+
+
+
+

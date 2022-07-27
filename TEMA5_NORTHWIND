@@ -1,0 +1,219 @@
+/*      SESION 5        */
+
+--VEAMOS EL TAMAÑO DE LA BASE DE DATOS
+SELECT pg_size_pretty(pg_database_size('northwind'));
+
+--TAMAÑO DE TODAS LAS BASES DE DATOS, MOSTRANDO NOMBRE Y TAMAÑO
+SELECT pg_database.datname, pg_size_pretty(pg_database_size(pg_database.datname)) AS SIZE FROM pg_database;
+
+--TAMAÑO DE UNA TABLAS
+SELECT pg_size_pretty(pg_relation_size('orders'));
+
+
+--EXPLORAMOS ALGUNAS TABLAS
+SELECT * FROM categories;
+SELECT * FROM order_details;
+
+/*
+    JOINS
+*/
+
+SELECT * FROM customers;
+SELECT * FROM orders;
+SELECT * FROM shippers;
+
+--CONSULTAMOS LAS VENTAS POR CLIENTE
+SELECT o.order_id, cu.contact_name FROM orders o 
+INNER JOIN customers cu ON o.customer_id = cu.customer_id;
+
+--CONSULTAMOS QUE EMPRESA LE HIZO EL ENVIO A CADA VENTA
+SELECT o.order_id, cu.contact_name, shi.company_name FROM orders o 
+INNER JOIN customers cu ON o.customer_id = cu.customer_id --LO NORMAL ES QUE LA FOREIGN KEY DE 
+INNER JOIN shippers shi ON o.ship_via = shi.shipper_id;   --UNA TABLA SEA LA PRIMARY KEY DE LA OTRA
+
+
+/*
+    LEFT JOIN
+*/
+
+--COMO EL INNER JOIN PERO ADEMAS ME DEVUELVE LOS DATOS DE LA PRIMERA TABLA (CUSTOMERS)
+SELECT o.order_id, cu.contact_name FROM customers cu 
+LEFT JOIN orders o ON o.customer_id = cu.customer_id;
+
+/*
+    RIGHT JOIN
+*/
+
+--COMO EL INNER JOIN PERO ADEMAS ME DEVUELVE LOS DATOS DE LA SEGUNDA TABLA (ORDERS)
+SELECT o.order_id, cu.contact_name FROM customers cu 
+RIGHT JOIN orders o ON o.customer_id = cu.customer_id;
+
+/*
+    VISTAS
+*/
+
+--ASIGNAMOS UN IDENTIFICADOR A UNA CONSULTA DETERMINADA, PARA NO TENER QUE REPETIR EL MISMO CODIGO TODO EL RATO
+
+--CREAMOS UNA VISTA CON EL UMERO DE PEDIDOS POR EMPLEADO
+CREATE VIEW num_orders_by_employee AS 
+SELECT em.first_name, em.last_name, COUNT(o.order_id) AS num_orders FROM orders o
+INNER JOIN employees em ON o.employee_id = em.employee_id
+GROUP BY em.first_name, em.last_name
+ORDER BY num_orders DESC;
+
+--DE ESE MODO, CUANDO QUERAMOS ACCEDER A ESTA CONSULTA, LO HACEMOS DEL SIGUIENTE MODO
+SELECT * FROM num_orders_by_employee;
+
+--LA VISTA SE GUARDA Y PUEDE MODIFICARSE EN CUALQUIER MOMENTO
+--SE PUEDEN CREAR VISTAR DE LO QUE DESEEMOS
+
+ --PODEMOS CONSULTAR TODAS LAS VISTAS CREADAS
+SELECT * FROM pg_views;
+
+/*
+    VISTAS MATERIALIZADAS
+*/
+
+--ESTAS VISTAS GUARDAN  FISICAMENTELOS DATOS OBTENIDOS DE LA CONSULTA, DE MODO QUE ES MAS RAPIDO ACCEDER A ELLOS
+--ES DECIR, GUARDAN LOS REUSLTADOS EN EL CAHCE DE UNA QUERY COMPLEJA Y PERMITEN ACTUALIZARLO PERIODICAMENTE
+CREATE MATERIALIZED VIEW IF NOT EXISTS mw_num_orders_by_employee AS 
+SELECT em.first_name, em.last_name, COUNT(o.order_id) AS num_orders FROM orders o
+INNER JOIN employees em ON o.employee_id = em.employee_id
+GROUP BY em.first_name, em.last_name
+ORDER BY num_orders DESC
+WITH DATA;
+
+SELECT * FROM mw_num_orders_by_employee;
+/*
+    GENERAR DATOS
+*/
+CREATE TABLE example(
+    id INT,
+    name VRCHAR
+);
+
+SELECT * FROM example;
+
+--GENERAMOS DATOS EN LA TABLA
+INSERT INTO example(id)
+SELECT * FROM generate_series(1, 500000);
+
+--GENERAMOS UNA VISTA MATERIALIZADA
+CREATE MATERIALIZED VIEW mv_example AS
+SELECT * FROM example
+WITH DATA; --TARDA UNOS 2 sec
+
+SELECT * FROM mv_example; --TARDA UNOS 200 msec
+
+--PODEMOS VER TODAS LAS VISTAS MATERIALIZADAS QUE TENEMOS
+SELECT * FROM pg_matviews;
+
+--PODEMOS GENERAR SERIES TEMPORALES
+SELECT * FROM generate_series(
+    '2022-01-01 00:00'::timestamp,
+    '2022-12-25 00:00',
+    '6 hours'
+) AS serie_6_horas
+/*
+            OPTIMIZACION DE BASE DE DATOS
+*/
+
+/*
+    EXPLAIN ANALYZE
+*/
+
+--ANALIZAMOS EL COSTE DE UNA CONSULTA (LO QUE LE CUESTA A POSTGRESQL HACER UNA DETERMINADA CONSULTA Y LO QUE HACE)
+EXPLAIN ANALYZE SELECT * FROM products;
+EXPLAIN ANALYZE SELECT * FROM num_orders_by_employee;
+
+/*
+    INDICES
+*/
+
+--RESULTA MUY UTILES EN TABLAS DONDE HAY MUCHOS REGISTROS
+--SUELEN CREARSE PARA LAS PRIMARY KEYS O CONSULTAS MUY RECURRENTES
+CREATE INDEX idx_orders_pk ON orders(order_id);
+
+EXPLAIN ANALYZE SELECT * FROM example;
+
+--PARA TABLAS MAS GRANDES RESULTA MAS UTIL
+CREATE INDEX idx_example_pk ON example(id);
+
+--AL CREAR EL INDICE Y REALIZAR UNA CONSULTA MAS COMPLEJA, SE EMPLEA UNA BUSQUEDA POR INDICE PARA QUE LA CONSULTA
+--SEA MAS RAPIDA
+EXPLAIN ANALYZE SELECT * FROM example WHERE id = 456789;
+
+/*
+    PARTICIONAMIENTO DE TABLAS
+*/
+
+--CONSISTE EN DIVIDIR LA TABLA EN VARIAS PARTES PARA OPTIMIZAR CONSULTAS
+/* EXISTEN TRES TIPOS
+    -RANGO
+    -LISTA
+    -HASH
+*/
+
+--CREAMOS UNA TABLA CON PARTICION TIPO RANGE
+CREATE TABLE users(
+    id  BIGSERIAL, --SE USA PARA MUCHA CANTIDAD DE DATOS
+    birth_date DATE NOT NULL,
+    first_name VARCHAR(20) NOT NULL,
+    
+    PRIMARY KEY(id, birth_date)
+) PARTITION BY RANGE (birth_date);
+
+--CREAMOS LAS PARTICIONES
+CREATE TABLE users_2020 PARTITION OF users
+FOR VALUES FROM(/*inicio*/'2020-01-01') TO (/*final*/'2021-01-01'); --LOS EXTREMOS DEL RANGO ESTAN EXCLUIDOS
+
+CREATE TABLE users_2021 PARTITION OF users
+FOR VALUES FROM(/*inicio*/'2021-01-01') TO (/*final*/'2022-01-01');
+
+CREATE TABLE users_2022 PARTITION OF users
+FOR VALUES FROM(/*inicio*/'2022-01-01') TO (/*final*/'2023-01-01');
+
+--INSERTAMOS VALORES
+INSERT INTO users(birth_date, first_name) VALUES
+    ('2020-01-15', 'user-1'),
+    ('2020-06-02', 'user-2'),
+    ('2021-03-20', 'user-3'),
+    ('2021-11-11', 'user4'),
+    ('2022-02-02', 'user-5'),
+    ('2022-12-01', 'user-6'),
+    ('2022-11-15', 'user-7');
+    
+--COMPROBAMOS QUE SE HAYAN REGISTRADO BIEN
+SELECT * FROM users_2020;
+SELECT * FROM users_2021;
+SELECT * FROM users_2022;
+
+--VEAMOS COMO SE REALIZA UNA CONSULTA GENERAL SOBRE LA TABLA BASE
+EXPLAIN ANALYZE SELECT * FROM users; --ESCANEA SOBRE TODAS LAS PARTICIONES
+
+--AHORA VEAMOS QUE PASA CUANDO FILTRAMOS POR UNA FECHA DETERMINADA
+EXPLAIN ANALYZE SELECT * FROM userS WHERE birth_date='2020-06-02'; --SOLO ESCANEA EN LA PARTICION 2020
+
+/*
+    EXTRACT
+*/
+
+--SE UTILIZA PARA EXTRAER UN DATO DETERMINADO DE UNA CONSULTA
+--VAMOS A OBTENER TODOS LOS CUMPLEAÑOS DE NOVIEMBRE
+SELECT * FROM users WHERE EXTRACT(MONTH FROM birth_date)=11;
+
+/*
+    CARGAR EXTENSIONES
+*/
+--CARGAMOS UNA EXTENSION DE CIFRADO
+CREATE EXTENSION pgcrypto;
+
+--CREAMOS UN REGISTRO CON CIERTO CAMPO CIFRADO
+INSERT INTO employees (employee_id, last_name, first_name, notes) VALUES
+(10, 'em','Emp10', pgp_sym_encrypt('Emp10', 'password') );
+
+SELECT * FROM employees;
+
+--PARA DESCRIFRARLO (habria que configurarlo bien)
+SELECT employee_id, pgp_sym_decrypt(notes::bytea, 'password') as notes FROM employees;
+

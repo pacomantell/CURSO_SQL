@@ -1,0 +1,241 @@
+/*SESION 4 PAGILA*/
+
+/*      
+            PRINCIPALES FILTROS PARA CONSULTAR DATOS
+*/
+
+SELECT * FROM address;
+/*
+    DISTINCT (PARA OBTENER DATOS UNICOS)
+*/
+
+--VAMOS A OBTENER LOS DISTRITOS DIFERENTES QUE HAY EN LA COLUMNA distrtict
+SELECT DISTINCT district FROM address; --HAY 380 DISTRITOS DIFERENTES
+
+--HACEMOS LO MISMO CON CLIENTES (NOMBRES DIFERENTES)
+SELECT DISTINCT first_name FROM customer; --HAY 592 NOMBRES DIFERENTES
+
+/*
+    SENTENCIAS DE CONTROL (AND, OR, NOT)
+*/
+
+--ELIMINAMOS LOS REGISTROS DEL DISTRITO DE CALIFORNIA
+SELECT * FROM address WHERE NOT district = 'California';
+
+--ORDENAMOS POR DISTRITO
+SELECT * FROM address WHERE NOT district = 'California' ORDER BY district;
+
+--SELECCIONAMOS LAS DIRECCIONES DE ABU DHABI O CALIFORNIA
+SELECT * FROM address WHERE district = 'Abu Dhabi' OR district = 'California';
+
+--ELIMINAMOS REGISTROS CON DISTRITO VACIO O NULO
+SELECT * FROM address WHERE NOT district = '' OR NOT district = NULL ORDER BY district;
+
+/*
+    GROUP BY
+*/
+
+--CALCULAMOS CUANTAS VECES SE REPITE CADA DISTRITO EN LA TABLA ADDRESS
+SELECT district, COUNT(district) AS VECES_REPETIDO FROM address GROUP BY district ORDER BY district;
+
+
+/*
+    JOINS
+*/
+
+--VAMOS A OBTENER LA DIRECCION COMPLETA DE UN CLIENTE
+SELECT * FROM customer;
+--BUSCO EL ADDRESS_ID
+SELECT * FROM address;
+--BUSCO LA CITY_ID
+SELECT * FROM city;
+--BUSCO EL PAIS
+SELECT * FROM country;
+
+/*  INNER JOIN  */
+
+--VAMOS A EXTRAER EL ADDRESS A PARTIR DEL CUSTOMER
+--EL INNER JOIN EXTRAE LOS DATOS DE LA SEGUNDA TABLA QUE COINCIDEN CON LOS DE LA PRIMERA
+SELECT first_name, last_name, cu.address_id, addr.address, ci.city
+    FROM customer cu --ALIAS A LA TABLA CUSTOMER (PARA SIMPLIFICAR)
+    INNER JOIN address addr ON cu.address_id = addr.address_id
+    
+--AMPLIAMOS AL RESTO DE TABLAS Y LE PEDIMOS QUE SAQUE LAS COLUMNAS QUE NOS INTERESAN (LA DIRECCION COMPLETA)
+SELECT first_name, last_name, addr.address, addr.district, addr.postal_code, ci.city, co.country
+    FROM customer cu --ALIAS A LA TABLA CUSTOMER (PARA SIMPLIFICAR)
+    INNER JOIN address addr ON cu.address_id = addr.address_id
+    INNER JOIN city ci ON addr.city_id = ci.city_id
+    INNER JOIN country co ON ci.country_id = co.country_id;
+
+/*
+    CONCATENAR COLUMNAS
+*/
+
+SELECT * FROM actor;
+
+--RECUPERAMOS LOS DATOS DE LA COLUMNA FIRST_NAME Y LAST_NAME EN UNA SOLA
+SELECT CONCAT(first_name, ' ', last_name) AS FULL_NAME FROM actor;
+
+/*
+    LIKE (PARA REALIZAR BUSQUEDAS)
+*/
+
+SELECT * FROM film;
+
+--BUSCAMOS AQUELLAS PELICULAS EN LAS QUE EN SU DESCRIPCION APAREZCA LA PALABRA "CAR"
+SELECT * FROM film WHERE description LIKE'%Car%';
+
+--ACTORES CUYOS APELLIDOS CONTENGAN LAS LETRAS LI
+SELECT * FROM actor WHERE last_name LIKE'%LI%';
+
+--ORDENAMOS ALFABETICAMENTE
+SELECT * FROM actor WHERE last_name LIKE'%LI%' ORDER BY last_name;
+
+/*
+    IN
+*/
+
+SELECT * FROM country;
+
+SELECT * FROM country WHERE country = 'Spain' OR country = 'Germany';
+
+--USAMOS IN PARA SIMPLIFICAR
+SELECT * FROM country WHERE country IN ('Spain', 'Germany', 'Moldova');
+
+/*  LA SENTENCIA IN ES UTIL PARA BUSQUEDAS AMPLIAS */
+
+SELECT * FROM customer WHERE customer_id IN(1, 5, 6, 48);
+
+
+/*
+        CONSULTAS MAS COMPLEJAS
+*/
+
+
+--MOSTRAMOS LOS APELLIDOS DE ACTORES QUE SE REPITEN DOS O MAS VECES (FILTRO HAVING)
+SELECT last_name, COUNT(last_name) AS veces_repetido FROM actor GROUP BY last_name HAVING COUNT(last_name) >=2;
+
+--PUEDO AÑADIRLE UN IN (SE EXPLICA MAS ABAJO)
+SELECT last_name, COUNT(last_name) AS veces_repetido FROM actor GROUP BY last_name HAVING COUNT(last_name) IN(2,3);
+
+--VEAMOS EN CUANTAS PELICULAS ACTUA CADA ACTOR
+SELECT * FROM film_actor;
+SELECT * FROM actor;
+SELECT * FROM film;
+
+--NUMERO DE VECES QUE APARECE CADA ACTOR EN PELICULAS
+SELECT first_name, last_name, COUNT(film_id) AS veces FROM actor ac
+    INNER JOIN film_actor fa ON ac.actor_id=fa.film_id
+    GROUP BY (first_name, last_name)
+    
+--CONSULTA DE STOCK EN BASE A TITULO
+SELECT * FROM inventory;
+
+SELECT title, COUNT(f.film_id) AS stock FROM film f
+    INNER JOIN inventory inv ON f.film_id=inv.film_id
+    GROUP BY f.title ORDER BY f.title;
+    
+--ORDENAMOS SEGUN STOCK (DE MAYOR A MENOR)
+SELECT title, COUNT(f.film_id) AS stock FROM film f
+    INNER JOIN inventory inv ON f.film_id=inv.film_id
+    GROUP BY f.title ORDER BY stock DESC;
+
+--SI QUIERO ESPECIFICAR UN TITULO CONCRETO
+SELECT title, COUNT(f.film_id) AS stock FROM film f
+    INNER JOIN inventory inv ON f.film_id=inv.film_id
+    WHERE f.title ='ACADEMY DINOSAUR'
+    GROUP BY f.title ORDER BY stock;
+
+--INCLUSO VARIOS TITULOS
+SELECT title, COUNT(f.film_id) AS stock FROM film f
+    INNER JOIN inventory inv ON f.film_id=inv.film_id
+    WHERE f.title IN('ACADEMY DINOSAUR', 'LOATHING LEGALLY', 'ACE GOLDFINGER')
+    GROUP BY f.title ORDER BY stock DESC;
+
+/*
+    FUNCION SUMA    SUM()
+*/
+
+SELECT * FROM customer;
+SELECT * FROM payment;
+
+--VEAMOS CUANTO DINERO SE HA GASTADO CADA CLIENTE, MOSTRANDOLO POR AGRUPACION DE FIRST_NAME Y LAST_NAME
+SELECT CONCAT(cu.first_name, cu.last_name) AS name, COUNT(pay.payment_id), SUM(pay.amount) AS total FROM payment pay
+INNER JOIN customer cu ON pay.customer_id = cu.customer_id
+GROUP BY name;
+
+--PUEDO ORDENARLOS POR total, ASI OBTENEMOS EL CLIENTE QUE MÁS SE HA GASTADO
+SELECT CONCAT(cu.first_name, cu.last_name) AS name, COUNT(pay.payment_id), SUM(pay.amount) AS total FROM payment pay
+INNER JOIN customer cu ON pay.customer_id = cu.customer_id
+GROUP BY name ORDER BY total DESC;
+
+--PODEMOS CONSULTAR QUE EMPLEADO HA VENDIDO MAS
+SELECT * FROM staff;
+
+SELECT CONCAT(s.first_name, s.last_name) AS name, COUNT(pay.staff_id) AS num_ventas, SUM(pay.amount) AS ventas_totales
+FROM payment pay
+INNER JOIN staff s ON s.staff_id = pay.staff_id
+GROUP BY name ORDER BY ventas_totales DESC;
+
+/*
+    SUB-CONSULTAS
+*/
+
+SELECT * FROM film ORDER BY film_id;
+SELECT * FROM country;
+
+--CAMBIAMOS IDIOMAS A VAIRAS PELICULAS
+UPDATE film SET language_id=2 WHERE film_id >100 AND film_id < 200;
+UPDATE film SET language_id=4 WHERE film_id >=200 AND film_id < 400;
+UPDATE film SET language_id=3 WHERE film_id >=500 AND film_id < 600;
+
+--CONSULTO QUE PELICULAS ESTAN EN INGLES SIN SABER QUE ID TIENE ESE IDIOMA
+SELECT title FROM film
+WHERE language_id = (SELECT language_id FROM language WHERE name = 'English');
+
+--PARA MAS IDIOMAS PUEDO HACER UN FILTRO IN Y METER DENTRO OTRO SELECT CON DOS CONDICIONES
+SELECT title FROM film
+WHERE language_id IN (SELECT language_id FROM language WHERE name = 'English' OR name = 'Italian');
+
+--OTRA OPCION PARA VARIOS IDIOMAS ES
+SELECT title FROM film
+WHERE language_id IN (SELECT language_id FROM language WHERE name IN ('English','Italian'));
+
+--PELICULAS MAS ALQUILADAS
+SELECT * FROM film;
+SELECT * FROM rental;
+SELECT * FROM inventory;
+
+SELECT f.title, COUNT(r.inventory_id) AS veces_rent FROM rental r
+INNER JOIN inventory inv ON r.inventory_id = inv.inventory_id
+INNER JOIN film f ON f.film_id = inv.film_id
+GROUP BY f.title ORDER BY veces_rent DESC;
+
+--LO PODEMOS HACER CON SUB-QUERYS (ES MAS ENREVESADO)
+SELECT f.title, COUNT(f.film_id) FROM film f
+INNER JOIN (SELECT * FROM inventory inv
+INNER JOIN rental r ON r.inventory_id = inv.inventory_id) res ON res.film_id=f.film_id
+GROUP BY f.title;
+
+--PODEMOS VER CUANTO SE HA FACTURADO POR PELICULA
+SELECT * FROM payment;
+
+SELECT f.title, COUNT(r.inventory_id) AS veces_rent, SUM(pay.amount) AS facturado FROM payment pay
+INNER JOIN rental r ON pay.rental_id = r.rental_id
+INNER JOIN inventory inv ON r.inventory_id = inv.inventory_id
+INNER JOIN film f ON f.film_id = inv.film_id
+GROUP BY f.title ORDER BY facturado DESC;
+
+--TAMBIEN SE PODRIA VER CUANTO SE HA FACTURADO POR ACTOR
+SELECT * FROM actor;
+SELECT * FROM film_actor;
+
+SELECT ac.first_name, ac.last_name, COUNT(ac.actor_id) AS veces, SUM(pay.amount) AS facturado FROM payment pay
+INNER JOIN rental r ON pay.rental_id = r.rental_id
+INNER JOIN inventory inv ON r.inventory_id = inv.inventory_id
+INNER JOIN film f ON f.film_id = inv.film_id
+INNER JOIN film_actor fa ON fa.film_id=f.film_id
+INNER JOIN actor ac ON ac.actor_id=fa.actor_id
+GROUP BY (ac.first_name, ac.last_name) ORDER BY facturado DESC;
+
+--FACTURACION POR FECHAS
