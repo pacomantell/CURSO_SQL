@@ -1,3 +1,4 @@
+```pgsql
 /* PARA EJECUTAR UNA PARTE DEL CODIGO SE SELECCIONA Y SE PULSA PLAY O F5*/
 
 /*SENTENCIAS DDL (DATA DEFINITION LANGUAGE)*/
@@ -168,3 +169,4 @@ CREATE DATABASE PAGILA;
   --CARGO LOS DATOS
     /* psql -h localhost -p 5432 -U postgres -d pagila < pagila-data.sql*/
     
+```
