@@ -13,7 +13,7 @@ Vurso de SQL básico en el que se trabaja bajo PostgreSQL.
     - Eliminación de registros.
     - Pruebas con base de datos Pagila.
 3. Consultas.
-    - Consultas complejas en base de datos PAgila.
+    - Consultas complejas en base de datos Pagila.
     - Creación de una base de datos desde cero.
 4. Consultas filtradas.
     - Sentencias de control.
